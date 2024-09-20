@@ -10,9 +10,6 @@ const BASE_URL = process.env.ARXS_BASE_URL;
 const getJwtToken = async () => {
     const response = await fetch(`${IDENTITY_URL}/api/authenticate/token/${API_KEY}`, {
         method: 'GET',
-        headers: {
-            'TenantId': TENANT_ID
-        }
     });
 
     if (!response.ok) {
