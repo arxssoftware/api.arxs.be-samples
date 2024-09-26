@@ -1,8 +1,8 @@
 import "dotenv/config";
 import fetch from "node-fetch";
+import crypto from "crypto";
 
 const API_KEY = process.env.ARXS_API_KEY;
-const TENANT_ID = process.env.ARXS_TENANT_ID;
 const IDENTITY_URL = process.env.ARXS_IDENTITY_URL;
 const BASE_URL = process.env.ARXS_BASE_URL;
 
@@ -65,6 +65,42 @@ const mapToHierarchy = (codeElements) => {
 
     return roots;
 };
+
+const mapImageUrlToAttachmentInfo = (url) => {
+    if (!url) {
+        return;
+    }
+    
+    const fileId = crypto.randomUUID();
+    const contentType = "image/png"
+    const fileName = "photo.png";
+
+    return {
+        attachments: [
+            {
+                type: "Image",
+                value: 
+                [
+                    {
+                        id: fileId,
+                        type: "StoredFile",
+                        props: { name: fileName },
+                        isDeleted: false,
+                    }
+                ]
+            }
+        ],
+        storedFiles: [
+            {
+                id: fileId,
+                contentType,
+                name: fileName,
+                url: url,                                    
+            }
+        ]
+    };
+}
+
 const getCodeElements = () => fetchFromApi("/api/masterdata/codeelements").then(mapToHierarchy);
 
 const getEquipments = () => fetchFromApi("/api/assetmanagement/equipment");
@@ -115,6 +151,8 @@ const type = kind.children[0].children.filter(x => x.name === typeString)[0];
 // Future releases of the API will extend on the filtering capabilities of the GET endpoints.
 const subject = (await getEquipments()).filter(x => x.uniqueNumber === subjectUniqueNumber)[0];
 
+const attachmentInfo = mapImageUrlToAttachmentInfo("https://intern.arxs.be/images/img_macbook.png");
+
 const data = {
     tags: [],
     notifier: { id: notifier.id, module: "Employee" },
@@ -130,7 +168,8 @@ const data = {
         city: "Koekelberg",
         latitude: 50.86499984826551,
         longitude: 4.318274640784401
-    }
+    },
+    attachmentInfo,
 };
 
 const taskResponse = await createTaskRequest(data);
