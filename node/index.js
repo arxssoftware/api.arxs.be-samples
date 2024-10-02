@@ -1,5 +1,7 @@
 import "dotenv/config";
 import fetch from "node-fetch";
+import fs from 'fs';
+import path from 'path';
 import crypto from "crypto";
 
 const API_KEY = process.env.ARXS_API_KEY;
@@ -39,6 +41,38 @@ const getEmployees = () => fetchFromApi("/api/masterdata/employee");
 
 const filterCategoryCode = (x) => Object.entries(x).filter(x => ["SortKindAndType", "KindAndType"].includes(x[1].hierarchyType)).map(x => x[0])[0];
 const getCategoryCodeForModule = async (module) => fetchFromApi(`/api/masterdata/codeelements/getmetadatabymodules/${module}`).then(filterCategoryCode);
+const getPutBlobUrl = (fileName, fileType) => fetchFromApi(`/api/shared/blob/GetBlobPutAuthorization?fileName=${encodeURIComponent(fileName)}&type=${fileType}`);
+
+const uploadToAzureBlob = async (filePath) => {
+    const fileName = path.basename(filePath);
+    const putBlobUrl = await getPutBlobUrl(fileName, "image");
+
+    if (!fs.existsSync(filePath)) {
+        throw new Error(`File ${filePath} does not exist.`);
+    }
+
+    const fileSize = fs.statSync(filePath).size;
+    const fileStream = fs.createReadStream(filePath);
+    const contentType = "image/png";
+
+    const response = await fetch(putBlobUrl, {
+        method: 'PUT',
+        headers: {
+            'x-ms-date': new Date().toISOString(),
+            'x-ms-version': '2019-12-12',
+            'x-ms-blob-type': 'BlockBlob',
+            'Content-Length': fileSize.toString(),
+            'Content-Type': contentType,
+        },
+        body: fileStream
+    });
+
+    if (!response.ok) {
+        throw new Error(`Failed to upload file. Status: ${response.status}, Message: ${response.statusText}`);
+    }
+
+    return putBlobUrl;
+}
 
 const mapToHierarchy = (codeElements) => {
     const roots = codeElements.filter(x => !x.parentId && x.code);
@@ -124,7 +158,7 @@ const createTaskRequest = async (body) => {
 
     const data = await response.json();
     return data;
-}
+};
 
 
 const userName = "arxssolutions";
@@ -151,7 +185,10 @@ const type = kind.children[0].children.filter(x => x.name === typeString)[0];
 // Future releases of the API will extend on the filtering capabilities of the GET endpoints.
 const subject = (await getEquipments()).filter(x => x.uniqueNumber === subjectUniqueNumber)[0];
 
-const attachmentInfo = mapImageUrlToAttachmentInfo("https://intern.arxs.be/images/img_macbook.png");
+// const imageUrl = "https://intern.arxs.be/images/img_macbook.png";
+const imageUrl = await uploadToAzureBlob("./img_macbook.png");
+
+const attachmentInfo = mapImageUrlToAttachmentInfo(imageUrl);
 
 const data = {
     tags: [],
