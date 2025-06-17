@@ -14,6 +14,10 @@ To access the API, you must include a JWT token as a Bearer token in the Authori
 2. Use the generated API key to request a JWT token by making a GET request to: https://identity.arxs.be/api/authenticate/token/{apiKey}. 
 3. The response will include a JWT token, which you can then use to authenticate your API calls. Add an Authorization header with "Bearer {jwt-token}".
 
-
 ## Current samples
-- A node implementation to create a task request.
+- A node implementation to:
+    - create a task request.
+    - create an employee record add it to a userRole
+
+## Node sample quick-start
+In order to get started using these samples, be sure to fill out your API-key in the .env file (as described above under 'How to Obtain a JWT token'). 
